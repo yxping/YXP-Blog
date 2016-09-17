@@ -1,5 +1,70 @@
 ---
 layout: default
 title: test title
+description: YXP的博客
 ---
-<p>Hello world!</p>
+<header class="main-page-header" style="background-image: url('{{ site.baseurl }}/images/main.JPG')">
+  <div class="main-container">
+    <div class="main-page-title">
+      <img class="main-page-headimg" src="{{ site.baseurl }}/images/head.JPG" alt="yxp头像" />
+      <h1>YXP Blog</h1>
+      <span>越努力越幸运</span>
+    </div>
+  </div>
+</header>
+
+<div class="post-list-container">
+  {% for post in paginator.posts %}
+  <div class="post-list-preview">
+      <a href="{{ post.url | prepend: site.baseurl }}">
+          <h2 class="post-title">
+              {{ post.title }}
+          </h2>
+          {% if post.subtitle %}
+          <h3 class="post-subtitle">
+              {{ post.subtitle }}
+          </h3>
+          {% endif %}
+          <div class="post-content-preview">
+              {{ post.content | strip_html | truncate:200 }}
+          </div>
+      </a>
+      <p class="post-meta">
+          Posted by {% if post.author %}{{ post.author }}{% else %}{{ site.title }}{% endif %} on {{ post.date | date: "%B %-d, %Y" }}
+      </p>
+  </div>
+  <hr>
+  {% endfor %}
+</div>
+
+<!-- Pager -->
+{% if paginator.total_pages > 1 %}
+<div class="page-list-selector">
+    {% if paginator.previous_page %}
+    <div class="selector-previous">
+        <a href="{{ paginator.previous_page_path | prepend: site.baseurl | replace: '//', '/' }}">&larr; Newer</a>
+    </div>
+    {% endif %}
+    <div>
+    </div>
+    {% if paginator.next_page %}
+    <div class="selector-next">
+        <a href="{{ paginator.next_page_path | prepend: site.baseurl | replace: '//', '/' }}">Older&rarr;</a>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<script>
+  // 确保fixed 文字能够显示
+  var $mainPageHeader = document.querySelector(".main-page-header");
+  var $navigator = document.querySelector(".navigator-wrap");
+  window.onscroll = function () {
+    // 当滚动到最底部以上100像素时， 加载新内容
+    if (document.body.scrollTop > ($mainPageHeader.scrollHeight - $navigator.scrollHeight)) {
+      $navigator.style.backgroundColor = "darkgray";
+    } else {
+      $navigator.style.backgroundColor = "transparent";
+    }
+  };
+</script>

@@ -1,0 +1,19 @@
+---
+layout: default
+error-img: "images/error.jpg"
+description: "在一个世界中迷失自我"
+permalink: /404.html
+---
+<header class="error-background" style="background-image:url('{{ site.baseurl }}/{{ page.error-img }}');">
+  <div class="container">
+    <div class="row">
+      <div class="center">
+        <h1>404</h1>
+        <span class="subheading">{{ page.description }}</span>
+      </div>
+    </div>
+  </div>
+  <script>
+    document.body.classList.add('page-fullscreen');
+  </script>
+</header>

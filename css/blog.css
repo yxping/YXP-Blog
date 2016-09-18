@@ -322,6 +322,7 @@ body {
   background-repeat: no-repeat;
   background-size: contain;
   background-attachment: scroll;
+  background-color: #888;
   -webkit-background-size: cover;
   -moz-background-size: cover;
   background-size: cover;

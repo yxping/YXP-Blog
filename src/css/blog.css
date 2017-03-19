@@ -263,13 +263,14 @@ body {
   flex-direction: column;
   justify-content: center;
   width: 100%;
+  margin-top: 30px;
 }
 
 .footer-container p {
-  margin-top: -5px;
   color: black;
   font-size: 13px;
   text-align: center;
+  margin: 0px;
 }
 
 .footer-container a {
@@ -302,13 +303,12 @@ body {
   margin-right: 20px;
 }
 
-.copyright {
-  color: black;
-}
-
-.copyright a {
-  color: black;
-  font-size: 13px;
+.theme-layout {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  color: #555;
 }
 
 /* 首页 */
@@ -322,6 +322,7 @@ body {
   background-repeat: no-repeat;
   background-size: contain;
   background-attachment: scroll;
+  background-color: #888;
   -webkit-background-size: cover;
   -moz-background-size: cover;
   background-size: cover;
@@ -449,47 +450,11 @@ body {
   color: lightgray;
 }
 
-/*分页器*/
-.page-list-selector {
-  position: relative;
-  display: flex;
-  flex-direction: row;
-  padding-left: 30px;
-  padding-right: 30px;
-  justify-content: space-between;;
-}
-
-.page-list-selector a {
-  text-decoration: none;
-  color: #222;
-  font-size: 18px;
-}
-
-.selector-previous {
-  border-style: solid;
-  border-width: 1px;
-  border-color: black;
-  border-radius: 5px;
-  padding: 5px;
-}
-
-.selector-previous:hover {
-  opacity: 0.5;
-}
-
-.selector-next {
-  border-style: solid;
-  border-width: 1px;
-  border-color: black;
-  border-radius: 5px;
-  padding: 5px;
-}
-
-.selector-next:hover {
-  opacity: 0.5;
-}
-
 /* 文章样式 */
 .content-container {
   padding: 30px 30px;
+}
+
+.duoshuo {
+  padding: 15px 30px;
 }

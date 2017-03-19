@@ -1,0 +1,18 @@
+---
+layout: default
+---
+<div class="content-container">
+  {{ content }}
+</div>
+{% if page.duoshuo_key %}
+<!-- 多说评论框 start -->
+<div class="duoshuo">
+  <div class="ds-thread" data-thread-key="{{page.duoshuo_key}}" data-title="{{page.title}}" data-url="{{site.url}}{{site.baseurl}}{{page.url}}"></div>
+</div>
+{% endif %}
+<!-- 多说评论框 end -->
+<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+<script type="text/javascript">
+  var $navigator = document.querySelector(".navigator-wrap");
+  $navigator.style.backgroundColor = "darkgray";
+</script>

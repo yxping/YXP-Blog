@@ -1,0 +1,16 @@
+# Navigator
+baseUrl
+githubSite
+weiboSite
+
+# ArticleInfo
+postTitle
+postSubTitle
+postContent
+postDate
+postSynopsis
+postUrl
+
+# PageSelector
+prePageUrl
+nextPageUrl

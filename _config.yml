@@ -1,11 +1,12 @@
 encoding: utf-8
-
-title: YXP的博客
+author: yxp
+title: yxp的博客
 github_site: https://github.com/yxping
 weibo_site: https://weibo.com/yaoxiaopengweibo
 
 # 开启分页功能
 paginate: 10
+
 # Gems
 # from PR#40, to support local preview for Jekyll 3.0
 gems: [jekyll-paginate]
@@ -17,3 +18,12 @@ gems: [jekyll-paginate]
 markdown: kramdown
 kramdown:
   input: GFM                            # use Github Flavored Markdown !important
+
+# output dir
+destination: public
+
+# source dir
+source: src
+
+# exlude this file or dir
+exlude: ['node_modules', gulpfile.js]

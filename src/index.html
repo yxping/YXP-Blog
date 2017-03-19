@@ -1,0 +1,36 @@
+---
+layout: default
+title: yxp的博客
+description: yxp的博客
+---
+<!-- BlogList -->
+<div>
+  {% for post in paginator.posts %}
+  <div class="__vue-root" id="ArticleInfo" postTitle="{{ post.title }}" postUrl="{{ post.url | prepend: site.baseurl }}"
+        postDate="{{ post.date | date: '%B %-d, %Y' }}" postSynopsis="{{ post.synopsis }}"
+        postSubTitle="{{ post.subtitle }}" postContent="{{ post.content }}" >
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Pager -->
+{% if paginator.total_pages > 1 %}
+<div class="__vue-root" id="PageSelector"
+      prePageUrl="{% if paginator.previous_page %} {{ paginator.previous_page_path | prepend: site.baseurl | replace: '//', '/' }} {% endif %}"
+      nextPageUrl="{% if paginator.next_page %} {{ paginator.next_page_path | prepend: site.baseurl | replace: '//', '/' }} {% endif %}">
+</div>
+{% endif %}
+
+<script>
+  // 确保fixed 文字能够显示
+  // var $mainPageHeader = document.querySelector(".main-page-header");
+  // var $navigator = document.querySelector(".navigator-wrap");
+  // window.onscroll = function () {
+  //   // 当滚动到最底部以上100像素时， 加载新内容
+  //   if (document.body.scrollTop > ($mainPageHeader.scrollHeight - $navigator.scrollHeight)) {
+  //     $navigator.style.backgroundColor = "darkgray";
+  //   } else {
+  //     $navigator.style.backgroundColor = "transparent";
+  //   }
+  // };
+</script>

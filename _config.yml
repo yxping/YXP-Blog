@@ -28,4 +28,4 @@ source: src
 # exlude this file or dir
 exlude: ['node_modules', gulpfile.js]
 
-baseurl: /src
+# baseurl: /src

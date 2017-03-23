@@ -6,7 +6,7 @@
   <meta http-equiv="content-type" content="text/html" />
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>关于yxp</title>
+  <title>First Post</title>
   <!-- Custom CSS -->
   <link rel="stylesheet" href="/css/blog.css">
   <!-- Custom Fonts -->
@@ -79,7 +79,41 @@
   // })
 </script>
 
-	
+	<div class="detail-container-layout">
+  <h2 > First Post</h2>
+  <div class="content-container-layout">
+    <div class="content-container">
+      <h1>First Post</h1>
+<p>This is my first post.Click the link below to go back to index:</p>
+<p><a href="/index.html">Go back</a></p>
+
+    </div>
+    <div id="toc" class="toc-layout"></div>
+  </div>
+  
+  <!-- 多说评论框 start -->
+  <div class="duoshuo">
+    <div class="ds-thread" data-thread-key="0" data-title="First Post" data-url="http://localhost:4000/2016/07/17/post-1.html"></div>
+  </div>
+  
+  <!-- 多说评论框 end -->
+</div>
+
+<script src="/js/toc.js"></script>
+
+<script type="text/javascript">
+  // 生成目录toc
+  $(document).ready(()=> {
+      $('#toc').toc({ classes: { list: '',
+                           item: 'toc-item'
+                         }
+              });
+  });
+  // 多说公共JS代码 start (一个网页只需插入一次)
+  var $navigator = document.querySelector(".navigator-wrap");
+  $navigator.style.backgroundColor = "darkgray";
+</script>
+
 	<footer>
   <div class="footer-container">
     <div class="theme-layout">

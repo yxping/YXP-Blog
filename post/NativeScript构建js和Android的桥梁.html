@@ -6,7 +6,7 @@
   <meta http-equiv="content-type" content="text/html" />
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>yxp的博客</title>
+  <title>NativeScript构建js和Android的桥梁</title>
   <!-- Custom CSS -->
   <link rel="stylesheet" href="/css/blog.css">
   <!-- Custom Fonts -->
@@ -79,36 +79,11 @@
   // })
 </script>
 
-	<!-- BlogList -->
-<div>
-  
-  <div class="__vue-root" id="ArticleInfo" postTitle="关于顶层const和底层const问题" postUrl="/jotting/关于顶层const和底层const问题.html"
-        postDate="January 1, 2017" postSynopsis=""
-        postSubTitle="" postContent="<p>As we’ve seen, a pointer is an object that can point to a different object. As a result,
-we can talk independently about whether a pointer is const and whether the objects
-to which it can point are const. We use the term top-level const to indicate that the
-pointer itself is a const. When a pointer can point to a const object, we refer to
-that const as a low-level const.</p>
-" >
-  </div>
-  
-  <div class="__vue-root" id="ArticleInfo" postTitle="Third Post" postUrl="/2016/09/16/post-1.html"
-        postDate="September 16, 2016" postSynopsis="It the GoodDay to Say Hello to my new blog"
-        postSubTitle="" postContent="<h3>：</h3>
-<p>XCore是给予前端展示界面Native化能力的框架，前端与Native的交互是XCore与生俱来的能力。对于创建新组件，我们强烈推荐使用现有的XCore API进行前端组件的拓展和封装。但是由于框架中现有的局限影响了你的开发，当框架中的拓展涉及了或者是不能满足，可以进行组件的Native拓展。
-组件Native拓展指的是在xcore-vue中定义组件标签component，该component组件在Native端中对应一个View组件，改component的展示逻辑都有Native端的决定，</p>
-
-<div class="language-java highlighter-rouge"><pre class="highlight"><code><span class="kd">public</span> <span class="kt">void</span> <span class="nf">func</span><span class="o">()</span> <span class="o">{</span>
-
-<span class="o">}</span>
-</code></pre>
-</div>
-" >
-  </div>
-  
-  <div class="__vue-root" id="ArticleInfo" postTitle="NativeScript构建js和Android的桥梁" postUrl="/post/NativeScript构建js和Android的桥梁.html"
-        postDate="August 19, 2016" postSynopsis="It the GoodDay to Say Hello to my new blog"
-        postSubTitle="" postContent="<h3 id="前言">前言：</h3>
+	<div class="detail-container-layout">
+  <h2 > NativeScript构建js和Android的桥梁</h2>
+  <div class="content-container-layout">
+    <div class="content-container">
+      <h3 id="前言">前言：</h3>
 <p>在React的热浪中，许多优秀的概念喷涌而出，感谢facebook带来的新的概念。最值得关注的就是今年非常火爆的ReactNative框架，learn once, write anywhere. 让js变得异常强大，可以跑在web,ios,android三端，尽管有一定的学习成本，但其强大的开发者库，以及优秀的体验，足以征服无数开发者。</p>
 
 <p>本篇文章主要分析js与Android的交互框架NativeScript中的android-runtime框架，借此可以了解在android端打造ReactNative的基础——Android与js通信的问题。</p>
@@ -433,34 +408,27 @@ java层的代码包括了test-app项目和runtime核心项目的部分大体已�
   <li>js调试</li>
   <li>android-runtime优缺点</li>
 </ul>
-" >
+
+    </div>
+    <div id="toc" class="toc-layout"></div>
   </div>
   
-  <div class="__vue-root" id="ArticleInfo" postTitle="First Post" postUrl="/2016/07/17/post-1.html"
-        postDate="July 17, 2016" postSynopsis="It the GoodDay to Say Hello to my new blog"
-        postSubTitle="第一次发自己的博客" postContent="<h1>First Post</h1>
-<p>This is my first post.Click the link below to go back to index:</p>
-<p><a href="/index.html">Go back</a></p>
-" >
-  </div>
-  
+  <!-- 多说评论框 end -->
 </div>
 
-<!-- Pager -->
+<script src="/js/toc.js"></script>
 
-
-<script>
-  // 确保fixed 文字能够显示
-  // var $mainPageHeader = document.querySelector(".main-page-header");
-  // var $navigator = document.querySelector(".navigator-wrap");
-  // window.onscroll = function () {
-  //   // 当滚动到最底部以上100像素时， 加载新内容
-  //   if (document.body.scrollTop > ($mainPageHeader.scrollHeight - $navigator.scrollHeight)) {
-  //     $navigator.style.backgroundColor = "darkgray";
-  //   } else {
-  //     $navigator.style.backgroundColor = "transparent";
-  //   }
-  // };
+<script type="text/javascript">
+  // 生成目录toc
+  $(document).ready(()=> {
+      $('#toc').toc({ classes: { list: '',
+                           item: 'toc-item'
+                         }
+              });
+  });
+  // 多说公共JS代码 start (一个网页只需插入一次)
+  var $navigator = document.querySelector(".navigator-wrap");
+  $navigator.style.backgroundColor = "darkgray";
 </script>
 
 	<footer>

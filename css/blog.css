@@ -264,6 +264,7 @@ body {
   justify-content: center;
   width: 100%;
   margin-top: 30px;
+  margin-bottom: 30px;
 }
 
 .footer-container p {
@@ -450,11 +451,43 @@ body {
   color: lightgray;
 }
 
+.toc-item a{
+  text-decoration: none;
+  color: #777;
+}
+
+.toc-item:hover > a{
+  text-decoration: underline;
+  color: black;
+}
+
 /* 文章样式 */
+.detail-container-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.content-container-layout {
+  display: flex;
+  flex-direction: row;
+}
+
 .content-container {
-  padding: 30px 30px;
+  width: 750px;
+}
+
+.toc-layout {
+  position: absolute;
+  width: 200px;
+  margin-left: 770px;
+  border-left-style: solid;
+  border-color: #666;
+  border-width: 1px;
+
 }
 
 .duoshuo {
+  width: 750px;
   padding: 15px 30px;
 }

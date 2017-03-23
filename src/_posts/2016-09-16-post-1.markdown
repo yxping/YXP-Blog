@@ -1,0 +1,15 @@
+---
+layout: detail
+title: Third Post
+author: "YXP"
+synopsis: It the GoodDay to Say Hello to my new blog
+---
+### ：
+XCore是给予前端展示界面Native化能力的框架，前端与Native的交互是XCore与生俱来的能力。对于创建新组件，我们强烈推荐使用现有的XCore API进行前端组件的拓展和封装。但是由于框架中现有的局限影响了你的开发，当框架中的拓展涉及了或者是不能满足，可以进行组件的Native拓展。
+组件Native拓展指的是在xcore-vue中定义组件标签component，该component组件在Native端中对应一个View组件，改component的展示逻辑都有Native端的决定，
+
+``` java
+public void func() {
+
+}
+```

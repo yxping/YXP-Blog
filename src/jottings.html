@@ -2,3 +2,22 @@
 layout: default
 title: yxp的笔记
 ---
+<!-- BlogList -->
+<div>
+  {% for category in site.categories %}
+    {% for post in category.last %}
+      <div class="__vue-root" id="ArticleInfo" postTitle="{{ post.title }}" postUrl="{{ post.url | prepend: site.baseurl }}"
+            postDate="{{ post.date | date: '%B %-d, %Y' }}" postSynopsis="{{ post.synopsis }}"
+            postSubTitle="{{ post.subtitle }}" postContent="{{ post.content }}" >
+      </div>
+    {% endfor %}
+  {% endfor %}
+</div>
+
+<!-- Pager -->
+{% if paginator.total_pages > 1 %}
+<div class="__vue-root" id="PageSelector"
+      prePageUrl="{% if paginator.previous_page %} {{ paginator.previous_page_path | prepend: site.baseurl | replace: '//', '/' }} {% endif %}"
+      nextPageUrl="{% if paginator.next_page %} {{ paginator.next_page_path | prepend: site.baseurl | replace: '//', '/' }} {% endif %}">
+</div>
+{% endif %}

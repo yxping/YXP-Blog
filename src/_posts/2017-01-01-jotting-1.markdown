@@ -1,0 +1,12 @@
+---
+layout: detail
+title: 关于顶层const和底层const问题
+author: "YXP"
+category: jotting
+permalink: jotting/关于顶层const和底层const问题.html
+---
+As we’ve seen, a pointer is an object that can point to a different object. As a result,
+we can talk independently about whether a pointer is const and whether the objects
+to which it can point are const. We use the term top-level const to indicate that the
+pointer itself is a const. When a pointer can point to a const object, we refer to
+that const as a low-level const.

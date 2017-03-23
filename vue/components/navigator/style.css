@@ -70,6 +70,10 @@
   font-size: 18px;
 }
 
+.navigatorText {
+  opacity: 0.5;
+}
+
 .navigatorTextUnderline {
   background-color: #55AA88;
   height: 4px;

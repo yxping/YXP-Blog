@@ -1,18 +1,34 @@
 ---
 layout: default
 ---
-<div class="content-container">
-  {{ content }}
+<div class="detail-container-layout">
+  <h2 > {{ page.title }}</h2>
+  <div class="content-container-layout">
+    <div class="content-container">
+      {{ content }}
+    </div>
+    <div id="toc" class="toc-layout"></div>
+  </div>
+  {% if page.duoshuo_key %}
+  <!-- 多说评论框 start -->
+  <div class="duoshuo">
+    <div class="ds-thread" data-thread-key="{{page.duoshuo_key}}" data-title="{{page.title}}" data-url="{{site.url}}{{site.baseurl}}{{page.url}}"></div>
+  </div>
+  {% endif %}
+  <!-- 多说评论框 end -->
 </div>
-{% if page.duoshuo_key %}
-<!-- 多说评论框 start -->
-<div class="duoshuo">
-  <div class="ds-thread" data-thread-key="{{page.duoshuo_key}}" data-title="{{page.title}}" data-url="{{site.url}}{{site.baseurl}}{{page.url}}"></div>
-</div>
-{% endif %}
-<!-- 多说评论框 end -->
-<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+
+<script src="/js/toc.js"></script>
+
 <script type="text/javascript">
+  // 生成目录toc
+  $(document).ready(()=> {
+      $('#toc').toc({ classes: { list: '',
+                           item: 'toc-item'
+                         }
+              });
+  });
+  // 多说公共JS代码 start (一个网页只需插入一次)
   var $navigator = document.querySelector(".navigator-wrap");
   $navigator.style.backgroundColor = "darkgray";
 </script>

@@ -1,0 +1,314 @@
+---
+layout: detail
+title: NativeScript构建js和Android的桥梁
+author: "YXP"
+synopsis: It the GoodDay to Say Hello to my new blog
+permalink: /post/NativeScript构建js和Android的桥梁.html
+---
+### 前言：
+在React的热浪中，许多优秀的概念喷涌而出，感谢facebook带来的新的概念。最值得关注的就是今年非常火爆的ReactNative框架，learn once, write anywhere. 让js变得异常强大，可以跑在web,ios,android三端，尽管有一定的学习成本，但其强大的开发者库，以及优秀的体验，足以征服无数开发者。
+
+本篇文章主要分析js与Android的交互框架NativeScript中的android-runtime框架，借此可以了解在android端打造ReactNative的基础——Android与js通信的问题。
+
+NativeScript将三端代码放到了不同的仓库，[前端框架链](https://github.com/NativeScript/NativeScript)接、[Android框架链接](https://github.com/NativeScript/android-runtime)、[IOS框架链接](https://github.com/NativeScript/ios-runtime)。
+
+***对于android-runtime框架，涉及到了v8引擎，从java层到native层，再到js层，需要对三端有一定的了解，文章中介绍nativeScript核心运行时原理（包含java，ndk和js），关于bingding-generator将java类进行二进制化，并一次性注入v8中，使v8可以获得所有类的调用能力的问题，此篇不展开。***
+
+要了解android-runtime（理解一个框架最快就是从excample中提供的一个入口节点，去摸索框架其中的原理），先将demo跑起来看看效果，demo入口在test-app中。跑起来的时候一开始白屏了，那是在进行js的api test，等一下就可以看到真正的内容，可以体会到写着js在Android中跑起来的快感（虽然webview也可以运行js一样爽快-。-，但是这可是原生界面），android-runtime下的工程有很多个，本篇介绍的工程集中在runtime文件夹下。
+
+看完了demo的效果之后，应该进入框架的研究了，看了demo后应该带着如下几个问题去探索：
+- JS如何调用Android，这里隐含了js如何调用C，C如何调用Android？
+- Android如何调用JS，这里隐含了Android如何调用C，C如何调用JS？
+- 参数怎么互相转化的？
+- JS怎么知道Android有哪些类？
+- 怎么将js的对象和android的对象进行绑定?
+
+这几个问题里面都涉及了google V8引擎。下面带着问题来开始旅程。
+
+### 整体
+首先先从整体上看android-runtime的框架：(这可以等流程了解了再来看，会更加清楚）
+![whole](http://yxping.github.io/images/favicon.ico)
+整体上分了四层，通信的方向正如图中所给的箭头，从最上层的JS通过v8传递给jni，再由jni传递给android，反之亦然。
+1. java层：做好runtime初始化的所有资源准备，包括提取资源，类加载工具，调试工具，对象类型判断，对象保存（保存于js对应的对象，防止被回收找不到）
+2. jni层：接入v8的api，将js调用传出的方法，转化传递给Android，其中最特别的是，能将参数对应的Object转化成java成对象。
+3. v8层：将js的方法通过回调方式传递给jni
+4. js层：页面js逻辑
+
+#### java层
+下载demo源码，一起跟着源码从demo的入口开始，从NativeScriptApplication.onCreate和assets/MyApp.js开始阅读，test部分可以暂时放置。
+一个整体的初始化流程图如下：
+![initwhole](http://yxping.github.io/images/favicon.ico)
+1. NativeScriptApplication通过RuntimeHelper初始化Runtime，
+在RuntimeHelper.initRuntime方法中，包括了AndroidJSDebugger（调试工具类），NativeScriptUncaughtExceptionHandler（异常捕获类），Extractor（文件提取工具类），Configuration（Runtime配置类），NativeScriptLiveSync（与本地服务器进行文件同步工具）的初始化。
+
+其中文件提取工具类主要作用是解压assets文件，提取js和metadata文件：
+![assets](http://note.youdao.com/favicon.ico)
+- 解压assets的作用：由于assets文件中存有基础的js文件和metadata文件（比较大），将assets解压到本地，就不用每次都去通过assets去读取，因为assets读取时相当于解压apk去找资源拿出来一样，每次读取会降低效率，存在本地会减少读取时间，增加效率。
+- ExtractPolicy：是解压assets的一个判断标准，利用assetsThumb（包的版本和安装时间拼凑的字符串，详细可见generateAssetsThumb方法）判断是否需要解压和是否需要覆盖文件。
+- FileExtractor：利用AssetsExtractor.cpp进行assets提取，这里的提取方式是通过c++的zip解压方式提取assets中的文件。
+
+当基础的类初始化后，进入runtime的初始化，如下代码所示：
+Runtime.java
+
+``` java
+private final int runtimeId;
+private static int nextRuntimeId = 0;
+// Runtime是线程安全的，一个ThreadLoacal保存着自己的Runtime
+private final static ThreadLocal<Runtime> currentRuntime = new ThreadLocal<Runtime>();
+// 提供多个runtime的缓存
+private final static Map<Integer, Runtime> runtimeCache = new HashMap<Integer, Runtime>();
+
+// 在这里的ThreadScheduler是主线程，也可以移植到其他线程
+public Runtime(Configuration config, ThreadScheduler threadScheduler)
+{
+	synchronized(Runtime.currentRuntime)
+	{
+		Runtime existingRuntime = currentRuntime.get();
+		if (existingRuntime != null)
+		{
+			throw new NativeScriptException("There is an existing runtime on this thread with id=" + existingRuntime.getRuntimeId());
+		}
+		this.runtimeId = nextRuntimeId++;
+		this.config = config;
+		this.threadScheduler = threadScheduler;
+		// 类解析器
+		classResolver = new ClassResolver(this);
+		currentRuntime.set(this);
+		runtimeCache.put(this.runtimeId, this);
+	}
+}
+```
+2. 接着调用jni的对应的runtime.cpp的initNativeScript方法（此方法在jni层进行介绍，主要是开启v8），到这里**完成了java层的runtime和jni层的runtime的初始化**。
+接下来就是注入js中的拓展能力的工具类——ts_helper.js
+``` java
+runtime.runScript(new File(appDir, "internal/ts_helpers.js"));
+```
+此js的作用包括判断是否是一个extend之后的js对象，通过判断\_\_proto\_\_是不是具有Parent，还有使得js对象具备继承的能力，例如MyActivity.js：
+``` javascript
+var MyActivity = (function (_super) {
+    __extends(MyActivity, _super);
+    function MyActivity() {
+        _super.apply(this, arguments);
+    }
+    ...// 省略中间部分
+    // 将activity元素与NativeScriptActivity绑定，创建android的NativeScriptActivity对象时，
+    // 对应创建的js对象就会转到当前所定义的拓展元素中
+    MyActivity = __decorate([
+        JavaProxy("com.tns.NativeScriptActivity")
+    ], MyActivity);
+    return MyActivity;
+})(android.app.Activity);
+```
+
+3. 接下来就是向runtime中注入类绑定的js文件（NativeScriptActivity利用了注解绑定了MyApp.js），MyApp.js的作用使创建一个MyApp对象，注入绑定js的方法是通过Runtime.initInstance(Object)方法。
+
+``` java
+// 初始化js对象
+public static void initInstance(Object instance)
+{
+    // 获取当前线程的runtime对象
+	Runtime runtime = Runtime.getCurrentRuntime();
+	// 获取runtime id均为-1
+	int objectId = runtime.currentObjectId;
+	if (objectId != -1)
+	{
+		runtime.makeInstanceStrong(instance, objectId);
+	} else {
+		runtime.createJSInstance(instance);
+	}
+}
+// 由android对象创建js对象
+private void createJSInstance(Object instance)
+{
+    // 在jni层生层js对象的id
+	int javaObjectID = generateNewObjectId(getRuntimeId());
+    // 将android对象和js对象id移入强缓存区，由此可以推测出，**js对象和android的对象是通过id进行绑定的**
+	makeInstanceStrong(instance, javaObjectID);
+	Class<?> clazz = instance.getClass();
+	// 如果不曾加载此使用extends进行拓展的js文件，则进行module的注入，在底层就是利用js的require将js文件引入，
+	// 方便创建对象的时候，是使用该extend对象进行创建，此时的js的对象就具备有了require进来的对象的扩展能力。
+	if (!loadedJavaScriptExtends.containsKey(clazz))
+	{
+		JavaScriptImplementation jsImpl = clazz.getAnnotation(JavaScriptImplementation.class);
+		if (jsImpl != null)
+		{
+			File jsFile = new File(jsImpl.javaScriptFile());
+			// 加载注解中指定的js文件，使用js中的require加入。
+			// 在运行该段js的时候，在metadata中会将该.extend的对象缓存起来（MetadataNode.cpp中的SetStaticMembers函数）
+			// 则当创建该类的js对象的时候，都会创建该extend后的js对象
+			runModule(jsFile);
+		}
+		loadedJavaScriptExtends.put(clazz, jsImpl);
+	}
+	String className = clazz.getName();
+    // 通过底层创建js对象
+	createJSInstanceNative(getRuntimeId(), instance, javaObjectID, className);
+	if (logger.isEnabled())
+		logger.write("JSInstance for " + instance.getClass().toString() + " created with overrides");
+}
+```
+可能还会有点不解的是，为啥要使用新的js文件注入，举个例子，NativeScriptApplication为啥还要用MyApp.js，不是可以直接在js中创建一个与NativeScriptApplication绑定的js对象了吗？主要是因为不经过extend处理的js对象没有拓展能力，只能调到原生的android对象的方法。如下（MyApp.js和MyActivity.js意义相同）：
+MyApp.js
+``` javascript
+// demonstrates how to extend class in JavaScript with prebuilt Java proxy
+var MyApp = android.app.Application.extend("com.tns.NativeScriptApplication",
+{
+    // 通过extend之后，js对象的onCreate方法可以进行自己的操作，当从NativeScriptApplication中调用
+    // com.tns.Runtime.callJSMethod(this, "onCreate", void.class, args)的方法（和NativeScriptActivity类似）的时候
+    // 就可以调用到该js拓展对象的onCreate方法中
+	onCreate: function()
+	{
+		__log("Hello MyApp::onCreate()");
+	}
+});
+```
+4. NativeScriptActivity调用onCreate方法，调用到js中的onCreate方法中去创建android的ui元素
+``` java
+@JavaScriptImplementation(javaScriptFile = "./MyActivity.js")
+public class NativeScriptActivity extends android.app.Activity
+{
+	public NativeScriptActivity()
+	{
+		com.tns.Runtime.initInstance(this);
+	}
+
+	protected void onCreate(android.os.Bundle param_0)
+	{
+		Object[] args = new Object[1];
+		args[0] = param_0;
+		com.tns.Runtime.callJSMethod(this, "onCreate", void.class, args);
+	}
+}
+```
+
+小结：
+java层的代码包括了test-app项目和runtime核心项目的部分大体已经分析的差不多了。其他都是一些辅助的类，当大体流程了解了，这些辅助类也就能触类旁通了。这里总结遇到的几点方法：
+1. 在java层调用js方法是通过Runtime.callJsMethod()方法调用。
+2. 在java层创建js对象是通过Runtime.initJsInstance()方法调用。
+3. 回到刚刚提出的问题，“怎么将js的对象和android的对象进行绑定?”，从刚刚的分析上可以得出是利用id将js对象和android对象进行绑定，存储到一个map中。
+4. 加载流程是：初始化runtime->加载基础js->加载页面逻辑js。
+
+#### jni层
+jni层承担的责任是构建android和js通信的桥梁，也可以说是两者进行交流的语言转换器（进行参数转化）。在jni层有三个部分组成参数转化，对象管理，函数回调。在这一核心层中，做的事情比较多，但是总的来说就是就是以上上三个主要点。在这篇博客中也是对于runtime核心进行提取，提取出最主要的流程和方法，其余的细节部分需要根据源码再进行琢磨。
+
+这里主要涉及几个类文件，ObjectManager.cpp、Runtime.cpp、CallbackHandler.cpp、JsArgConvector.cpp、ArgConvector.cpp、MetadataNode.cpp，这几个类就可以打通整一套通信机制。
+
+这里分为两个模块进行runtime进行的工作的描述：
+1.Android与JS间对象创建和绑定：  
+![对象的创建和绑定](http://note.youdao.com/favicon.ico)  
+这里有两个渠道可以创建对象，两个渠道的意思是指js可以创建对象，同时会生成一个android对象；android可以创建对象，同时会生成一个js对象。对于NativeScript来说，由于是提供给前端去进行Android端的开发，所以对外所知道的是js能够对应的产生android对象，所以在进行Js编写的时候感受不到android能够创建js对象。但这个框架的能力很强的，就在于runtime这一层将js和android的行为变得一一对应（神乎其技，其实神的是v8）。我们就以两个example来了解创建对象的一个机制。
+
+(1)从JS端创建一个Android端的MyActivity对应的NativeScriptActivity：
+创建js的对象不是很简单吗？通过runscript去执行一个var a = {}，这个就是一个对象啦，但是这并不能和android的对象一一对应，下面来看下NativeScript是怎么做的。
+在上面java层的第3点中讲到了通过注解注入绑定的js文件，在此之后进行了初始化创建。
+``` java
+if (!loadedJavaScriptExtends.containsKey(clazz))
+{
+	JavaScriptImplementation jsImpl = clazz.getAnnotation(JavaScriptImplementation.class);
+	if (jsImpl != null)
+	{
+		File jsFile = new File(jsImpl.javaScriptFile());
+		// 注入js扩展类
+		runModule(jsFile);
+	}
+	loadedJavaScriptExtends.put(clazz, jsImpl);
+}
+String className = clazz.getName();
+// 创建javaobj对应的js对象
+createJSInstanceNative(getRuntimeId(), instance, javaObjectID, className);
+```
+在runModule时候会对应的创建了一个extend扩展了android.app.Activity的MyActivity，从而在初始化对应的android.app.Activity的时候会创建出对应的拓展MyActivity对象。
+``` javascript
+var MyActivity = (function (_super) {
+    __extends(MyActivity, _super);
+    function MyActivity() {
+        _super.apply(this, arguments);
+    }
+    ······
+    MyActivity = __decorate([
+        JavaProxy("com.tns.NativeScriptActivity")
+    ], MyActivity);
+    return MyActivity;
+})(android.app.Activity);
+```
+这个拓展是怎么做到的呢？可以在MetaData初始化的时候可以知道，MetaData是Java类的一个jni的容器，一个MetadataNode对应着一个类，通过MetadataNode可以对一个android类进行实例化，当然MetaData的初始化和反射起类的方式都需要靠asm去进行操作，这个是属于bingding-generator的范围，涉及了如何生成treeNodeStream.dat等的问题，这个不在这篇博客中叙述。但是需要明白的是，java的类和自己开发的类都在gradle的生成了对应的treeNodeStream.dat等三个二进制文件中，通过MetadataReader可以将其解析成对应的MetadataTreeNode和MetadataNode，利用MetadataNode去和其他类交互。  
+
+现在第一步了解了MetaData后可以来看一下加载MetadataNode的主要过程和上面提到的问题。
+在Runtime.cpp中的PrepareV8Runtime方法中有MetadataNode::BuildMetadata的方法，这就是进行Metadata初始化的起点:
+``` c++
+void MetadataNode::BuildMetadata(const string& filesPath)
+{
+	...
+	baseDir.append("/metadata");
+	string nodesFile = baseDir + "/treeNodeStream.dat";
+	string namesFile = baseDir + "/treeStringsStream.dat";
+	string valuesFile = baseDir + "/treeValueStream.dat";
+    ...
+	BuildMetadata(lenNodes, reinterpret_cast<uint8_t*>(nodes), lenNames, reinterpret_cast<uint8_t*>(names), lenValues, reinterpret_cast<uint8_t*>(values));
+	delete[] nodes;
+}
+```
+可以看出，在BuildMetadata中就是做了加载三个dat二进制文件，接着，通过MetadataReader的BuildTree方法开始从二进制文件中读取node的基本信息，为后面加载类信息做基本准备。接着回到Runtime.cpp中，可以看到CreateTopLevelNamespaces方法，这个方法进行MetadataNode的初始化，从最顶层类开始往下。
+``` c++
+void MetadataNode::CreateTopLevelNamespaces(Isolate *isolate, const Local<Object>& global)
+{
+	auto root = s_metadataReader.GetRoot();
+
+	const auto& children = *root->children;
+
+	for (auto treeNode : children)
+	{
+		uint8_t nodeType = s_metadataReader.GetNodeType(treeNode);
+
+		if (nodeType == MetadataTreeNode::PACKAGE)
+		{
+		    // 从treeNode上获取下一个node的信息
+			auto node = GetOrCreateInternal(treeNode);
+            // 为node信息创建对应的js的obj 的创建模板FunctionTemplate
+			auto packageObj = node->CreateWrapper(isolate);
+			// 将js
+			global->Set(ArgConverter::ConvertToV8String(isolate, node->m_treeNode->name), packageObj);
+		}
+	}
+}
+```
+在CreateWrapper方法中，将会为每一个对应的类创建一个对应的模板FunctionTemplate，这个一个模板是能够向v8中注入相应的字段，通过字段作为js的一个新的类型，并通过此FunctionTemplate回调到jni方法，去进行相应的java obj和jni obj的初始化，并进行绑定。获得这个FunctionTemplate的方法是：
+``` c++
+
+```
+(2)从Android端创建一个js端的NativeScriptActivity对应的MyActivity：  
+
+
+2.Android与JS间方法调用：
+![方法调用](http://note.youdao.com/favicon.ico)
+创建了对象之后，那么调用方法也就是调用对象内部的方法，和上面的创建对象类似，但是是基于找到了对应的对象后利用jni和v8自身的机制去调用android和js的方法。
+
+(1)从JS端对象调用方法，直接调用到对应的Android对象的方法：
+
+(2)从Android端对象调用方法，直接调用到对应的js对象的方法。
+小结：
+
+#### v8
+就像上面说的一样，NativeScript的强大都是源于V8的神乎其技，v8鬼斧神工的代码实在难以琢磨，但是学会使用一些api也就能够很快的上手v8了。runtime里面就有很多使用v8 api的实例，是一个非常优秀的练功宝典。
+
+
+Android webview注入Object方法就是通过动态寻找类方法方式进行，基于一个已经完整的js，其实也是基于v8进行注入，weex也是比这个简单，就是简单的额注入一些基本的方法，注入一个已知的类，然后通过一个暴露的接口进行交互。
+
+
+#### android-runtime的优缺点
+1. 优点：
+
+2. 缺点：
+
+
+#### 说在最后
+
+metadata:如何将类进行加载和转化为节点。
+
+分为几个部分介绍：
+- nativeScript核心运行Runtime
+- 如何将类进行加载和转化为节点。
+- v8接口
+- js接口测试
+- js调试
+- android-runtime优缺点

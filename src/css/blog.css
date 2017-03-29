@@ -494,7 +494,7 @@ body {
 .toc-layout {
   position: absolute;
   width: 200px;
-  margin-left: 770px;
+  margin-left: 800px;
   border-left-style: solid;
   border-color: #666;
   border-width: 1px;
@@ -504,7 +504,7 @@ body {
   position: fixed;
   top: 40px;
   width: 200px;
-  margin-left: 770px;
+  margin-left: 800px;
   border-left-style: solid;
   border-color: #666;
   border-width: 1px;

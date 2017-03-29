@@ -9,6 +9,7 @@ XCore是给予前端展示界面Native化能力的框架，前端与Native的交
 组件Native拓展指的是在xcore-vue中定义组件标签component，该component组件在Native端中对应一个View组件，改component的展示逻辑都有Native端的决定，
 
 ``` java
+// 你好
 public void func() {
 
 }

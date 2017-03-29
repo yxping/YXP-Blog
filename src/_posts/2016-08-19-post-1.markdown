@@ -80,10 +80,13 @@ public Runtime(Configuration config, ThreadScheduler threadScheduler)
 ```
 2. 接着调用jni的对应的runtime.cpp的initNativeScript方法（此方法在jni层进行介绍，主要是开启v8），到这里**完成了java层的runtime和jni层的runtime的初始化**。
 接下来就是注入js中的拓展能力的工具类——ts_helper.js
+
 ``` java
 runtime.runScript(new File(appDir, "internal/ts_helpers.js"));
 ```
+
 此js的作用包括判断是否是一个extend之后的js对象，通过判断\_\_proto\_\_是不是具有Parent，还有使得js对象具备继承的能力，例如MyActivity.js：
+
 ``` javascript
 var MyActivity = (function (_super) {
     __extends(MyActivity, _super);
@@ -147,8 +150,10 @@ private void createJSInstance(Object instance)
 		logger.write("JSInstance for " + instance.getClass().toString() + " created with overrides");
 }
 ```
+
 可能还会有点不解的是，为啥要使用新的js文件注入，举个例子，NativeScriptApplication为啥还要用MyApp.js，不是可以直接在js中创建一个与NativeScriptApplication绑定的js对象了吗？主要是因为不经过extend处理的js对象没有拓展能力，只能调到原生的android对象的方法。如下（MyApp.js和MyActivity.js意义相同）：
 MyApp.js
+
 ``` javascript
 // demonstrates how to extend class in JavaScript with prebuilt Java proxy
 var MyApp = android.app.Application.extend("com.tns.NativeScriptApplication",
@@ -162,7 +167,9 @@ var MyApp = android.app.Application.extend("com.tns.NativeScriptApplication",
 	}
 });
 ```
+
 4. NativeScriptActivity调用onCreate方法，调用到js中的onCreate方法中去创建android的ui元素
+
 ``` java
 @JavaScriptImplementation(javaScriptFile = "./MyActivity.js")
 public class NativeScriptActivity extends android.app.Activity
@@ -201,6 +208,7 @@ jni层承担的责任是构建android和js通信的桥梁，也可以说是两�
 (1)从JS端创建一个Android端的MyActivity对应的NativeScriptActivity：
 创建js的对象不是很简单吗？通过runscript去执行一个var a = {}，这个就是一个对象啦，但是这并不能和android的对象一一对应，下面来看下NativeScript是怎么做的。
 在上面java层的第3点中讲到了通过注解注入绑定的js文件，在此之后进行了初始化创建。
+
 ``` java
 if (!loadedJavaScriptExtends.containsKey(clazz))
 {
@@ -217,7 +225,9 @@ String className = clazz.getName();
 // 创建javaobj对应的js对象
 createJSInstanceNative(getRuntimeId(), instance, javaObjectID, className);
 ```
+
 在runModule时候会对应的创建了一个extend扩展了android.app.Activity的MyActivity，从而在初始化对应的android.app.Activity的时候会创建出对应的拓展MyActivity对象。
+
 ``` javascript
 var MyActivity = (function (_super) {
     __extends(MyActivity, _super);
@@ -235,6 +245,7 @@ var MyActivity = (function (_super) {
 
 现在第一步了解了MetaData后可以来看一下加载MetadataNode的主要过程和上面提到的问题。
 在Runtime.cpp中的PrepareV8Runtime方法中有MetadataNode::BuildMetadata的方法，这就是进行Metadata初始化的起点:
+
 ``` c++
 void MetadataNode::BuildMetadata(const string& filesPath)
 {
@@ -249,6 +260,7 @@ void MetadataNode::BuildMetadata(const string& filesPath)
 }
 ```
 可以看出，在BuildMetadata中就是做了加载三个dat二进制文件，接着，通过MetadataReader的BuildTree方法开始从二进制文件中读取node的基本信息，为后面加载类信息做基本准备。接着回到Runtime.cpp中，可以看到CreateTopLevelNamespaces方法，这个方法进行MetadataNode的初始化，从最顶层类开始往下。
+
 ``` c++
 void MetadataNode::CreateTopLevelNamespaces(Isolate *isolate, const Local<Object>& global)
 {
@@ -262,9 +274,9 @@ void MetadataNode::CreateTopLevelNamespaces(Isolate *isolate, const Local<Object
 
 		if (nodeType == MetadataTreeNode::PACKAGE)
 		{
-		    // 从treeNode上获取下一个node的信息
+		   // 从treeNode上获取下一个node的信息
 			auto node = GetOrCreateInternal(treeNode);
-            // 为node信息创建对应的js的obj 的创建模板FunctionTemplate
+      // 为node信息创建对应的js的obj 的创建模板FunctionTemplate
 			auto packageObj = node->CreateWrapper(isolate);
 			// 将js
 			global->Set(ArgConverter::ConvertToV8String(isolate, node->m_treeNode->name), packageObj);
@@ -272,7 +284,9 @@ void MetadataNode::CreateTopLevelNamespaces(Isolate *isolate, const Local<Object
 	}
 }
 ```
+
 在CreateWrapper方法中，将会为每一个对应的类创建一个对应的模板FunctionTemplate，这个一个模板是能够向v8中注入相应的字段，通过字段作为js的一个新的类型，并通过此FunctionTemplate回调到jni方法，去进行相应的java obj和jni obj的初始化，并进行绑定。获得这个FunctionTemplate的方法是：
+
 ``` c++
 
 ```

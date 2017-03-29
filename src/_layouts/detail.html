@@ -24,11 +24,24 @@ layout: default
   // 生成目录toc
   $(document).ready(()=> {
       $('#toc').toc({ classes: { list: '',
-                           item: 'toc-item'
+                           item: 'toc-item',
+                           itemSelected: 'toc-item-arrived'
                          }
               });
   });
+  // toc目录悬浮效果
+  var tocFixedOnScroll = function() {
+    var contentLayout = document.getElementsByClassName('content-container-layout')[0];
+    var tocLayout = document.getElementById('toc');
+    if (document.body.scrollTop + 40 >= contentLayout.offsetTop) {
+      tocLayout.className = ' toc-layout-fixed';
+    } else {
+      tocLayout.className = ' toc-layout';
+    }
+  };
+  window.addEventListener("scroll", tocFixedOnScroll);
+
   // 多说公共JS代码 start (一个网页只需插入一次)
-  var $navigator = document.querySelector(".navigator-wrap");
-  $navigator.style.backgroundColor = "darkgray";
+  // var $navigator = document.querySelector(".navigator-wrap");
+  // $navigator.style.backgroundColor = "darkgray";
 </script>

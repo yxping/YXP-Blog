@@ -10,7 +10,8 @@
       showEffect: 'none', // values: [show|slideDown|fadeIn|none]
       showSpeed: '0', // set to 0 to deactivate effect
       classes: { list: '',
-                 item: ''
+                 item: '',
+                 itemSelected: '',
                }
     },
     settings = $.extend(defaults, options);
@@ -21,11 +22,6 @@
       });
     }
 
-    function createLink (header) {
-      var innerText = (header.textContent === undefined) ? header.innerText : header.textContent;
-      return "<a href='#" + fixedEncodeURIComponent(header.id) + "'>" + innerText + "</a>";
-    }
-
     var headers = $(settings.headers).filter(function() {
       // get all headers with an ID
       var previousSiblingName = $(this).prev().attr( "name" );
@@ -34,6 +30,12 @@
       }
       return this.id;
     }), output = $(this);
+
+    function createLink (header) {
+      var innerText = (header.textContent === undefined) ? header.innerText : header.textContent;
+      return "<a href='#" + fixedEncodeURIComponent(header.id) + "'>" + innerText + "</a>";
+    }
+
     if (!headers.length || headers.length < settings.minimumHeaders || !output.length) {
       $(this).hide();
       return;
@@ -69,17 +71,17 @@
         $(header).addClass('top-level-header').after(return_to_top);
       }
       if (this_level === level) // same level as before; same indenting
-        html += "<li class=\"" + settings.classes.item + "\">" + createLink(header);
+        html += "<li id='" + header.id + "tocItem' class=\"" + settings.classes.item + "\">" + createLink(header);
       else if (this_level <= level){ // higher level than before; end parent ol
         for(var i = this_level; i < level; i++) {
           html += "</li></"+settings.listType+">"
         }
-        html += "<li class=\"" + settings.classes.item + "\">" + createLink(header);
+        html += "<li id='" + header.id + "tocItem' class=\"" + settings.classes.item + "\">" + createLink(header);
       }
       else if (this_level > level) { // lower level than before; expand the previous to contain a ol
         for(i = this_level; i > level; i--) {
           html += "<" + settings.listType + " class=\"" + settings.classes.list +"\">" +
-                  "<li class=\"" + settings.classes.item + "\">"
+                  "<li id='" + header.id + "tocItem' class=\"" + settings.classes.item + "\">"
         }
         html += createLink(header);
       }
@@ -92,6 +94,28 @@
         window.location.hash = '';
       });
     }
+
+    // 监听滑动toc更新，通过增加toc-item的id，进行更新
+    var tocFixedOnScroll = function() {
+      if (settings.classes.itemSelected == '') return;
+      var target = undefined;
+      var start = -1;
+      var end = -1;
+      for (var i = 0; i < headers.length; ++i) {
+        var header = headers[i];
+        if (start > -1 && document.body.scrollTop < header.offsetTop) {
+          end = start;
+        } else if (document.body.scrollTop >= header.offsetTop) {
+          start = i;
+          target = document.getElementById(header.id + 'tocItem');
+        }
+        document.getElementById(header.id + 'tocItem').className = settings.classes.item;
+      }
+      if (end > -1 && end < headers.length) {
+        target.className = settings.classes.itemSelected;
+      }
+    };
+    window.addEventListener("scroll", tocFixedOnScroll);
 
     render[settings.showEffect]();
   };

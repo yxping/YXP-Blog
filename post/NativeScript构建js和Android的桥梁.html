@@ -166,27 +166,32 @@ Runtime.java</p>
 </div>
 <ol>
   <li>接着调用jni的对应的runtime.cpp的initNativeScript方法（此方法在jni层进行介绍，主要是开启v8），到这里<strong>完成了java层的runtime和jni层的runtime的初始化</strong>。
-接下来就是注入js中的拓展能力的工具类——ts_helper.js
-    <div class="language-java highlighter-rouge"><pre class="highlight"><code><span class="n">runtime</span><span class="o">.</span><span class="na">runScript</span><span class="o">(</span><span class="k">new</span> <span class="n">File</span><span class="o">(</span><span class="n">appDir</span><span class="o">,</span> <span class="s">"internal/ts_helpers.js"</span><span class="o">));</span>
+接下来就是注入js中的拓展能力的工具类——ts_helper.js</li>
+</ol>
+
+<div class="language-java highlighter-rouge"><pre class="highlight"><code><span class="n">runtime</span><span class="o">.</span><span class="na">runScript</span><span class="o">(</span><span class="k">new</span> <span class="n">File</span><span class="o">(</span><span class="n">appDir</span><span class="o">,</span> <span class="s">"internal/ts_helpers.js"</span><span class="o">));</span>
 </code></pre>
-    </div>
-    <p>此js的作用包括判断是否是一个extend之后的js对象，通过判断__proto__是不是具有Parent，还有使得js对象具备继承的能力，例如MyActivity.js：</p>
-    <div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="kd">var</span> <span class="nx">MyActivity</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">_super</span><span class="p">)</span> <span class="p">{</span>
- <span class="nx">__extends</span><span class="p">(</span><span class="nx">MyActivity</span><span class="p">,</span> <span class="nx">_super</span><span class="p">);</span>
- <span class="kd">function</span> <span class="nx">MyActivity</span><span class="p">()</span> <span class="p">{</span>
-     <span class="nx">_super</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
- <span class="p">}</span>
- <span class="p">...</span><span class="c1">// 省略中间部分</span>
- <span class="c1">// 将activity元素与NativeScriptActivity绑定，创建android的NativeScriptActivity对象时，</span>
- <span class="c1">// 对应创建的js对象就会转到当前所定义的拓展元素中</span>
- <span class="nx">MyActivity</span> <span class="o">=</span> <span class="nx">__decorate</span><span class="p">([</span>
-     <span class="nx">JavaProxy</span><span class="p">(</span><span class="s2">"com.tns.NativeScriptActivity"</span><span class="p">)</span>
- <span class="p">],</span> <span class="nx">MyActivity</span><span class="p">);</span>
- <span class="k">return</span> <span class="nx">MyActivity</span><span class="p">;</span>
+</div>
+
+<p>此js的作用包括判断是否是一个extend之后的js对象，通过判断__proto__是不是具有Parent，还有使得js对象具备继承的能力，例如MyActivity.js：</p>
+
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="kd">var</span> <span class="nx">MyActivity</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">_super</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">MyActivity</span><span class="p">,</span> <span class="nx">_super</span><span class="p">);</span>
+    <span class="kd">function</span> <span class="nx">MyActivity</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nx">_super</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="p">...</span><span class="c1">// 省略中间部分</span>
+    <span class="c1">// 将activity元素与NativeScriptActivity绑定，创建android的NativeScriptActivity对象时，</span>
+    <span class="c1">// 对应创建的js对象就会转到当前所定义的拓展元素中</span>
+    <span class="nx">MyActivity</span> <span class="o">=</span> <span class="nx">__decorate</span><span class="p">([</span>
+        <span class="nx">JavaProxy</span><span class="p">(</span><span class="s2">"com.tns.NativeScriptActivity"</span><span class="p">)</span>
+    <span class="p">],</span> <span class="nx">MyActivity</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nx">MyActivity</span><span class="p">;</span>
 <span class="p">})(</span><span class="nx">android</span><span class="p">.</span><span class="nx">app</span><span class="p">.</span><span class="nx">Activity</span><span class="p">);</span>
 </code></pre>
-    </div>
-  </li>
+</div>
+
+<ol>
   <li>接下来就是向runtime中注入类绑定的js文件（NativeScriptActivity利用了注解绑定了MyApp.js），MyApp.js的作用使创建一个MyApp对象，注入绑定js的方法是通过Runtime.initInstance(Object)方法。</li>
 </ol>
 
@@ -235,8 +240,10 @@ Runtime.java</p>
 <span class="o">}</span>
 </code></pre>
 </div>
+
 <p>可能还会有点不解的是，为啥要使用新的js文件注入，举个例子，NativeScriptApplication为啥还要用MyApp.js，不是可以直接在js中创建一个与NativeScriptApplication绑定的js对象了吗？主要是因为不经过extend处理的js对象没有拓展能力，只能调到原生的android对象的方法。如下（MyApp.js和MyActivity.js意义相同）：
 MyApp.js</p>
+
 <div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="c1">// demonstrates how to extend class in JavaScript with prebuilt Java proxy</span>
 <span class="kd">var</span> <span class="nx">MyApp</span> <span class="o">=</span> <span class="nx">android</span><span class="p">.</span><span class="nx">app</span><span class="p">.</span><span class="nx">Application</span><span class="p">.</span><span class="nx">extend</span><span class="p">(</span><span class="s2">"com.tns.NativeScriptApplication"</span><span class="p">,</span>
 <span class="p">{</span>
@@ -250,27 +257,28 @@ MyApp.js</p>
 <span class="p">});</span>
 </code></pre>
 </div>
+
 <ol>
-  <li>NativeScriptActivity调用onCreate方法，调用到js中的onCreate方法中去创建android的ui元素
-    <div class="language-java highlighter-rouge"><pre class="highlight"><code><span class="nd">@JavaScriptImplementation</span><span class="o">(</span><span class="n">javaScriptFile</span> <span class="o">=</span> <span class="s">"./MyActivity.js"</span><span class="o">)</span>
+  <li>NativeScriptActivity调用onCreate方法，调用到js中的onCreate方法中去创建android的ui元素</li>
+</ol>
+
+<div class="language-java highlighter-rouge"><pre class="highlight"><code><span class="nd">@JavaScriptImplementation</span><span class="o">(</span><span class="n">javaScriptFile</span> <span class="o">=</span> <span class="s">"./MyActivity.js"</span><span class="o">)</span>
 <span class="kd">public</span> <span class="kd">class</span> <span class="nc">NativeScriptActivity</span> <span class="kd">extends</span> <span class="n">android</span><span class="o">.</span><span class="na">app</span><span class="o">.</span><span class="na">Activity</span>
 <span class="o">{</span>
- <span class="kd">public</span> <span class="nf">NativeScriptActivity</span><span class="o">()</span>
- <span class="o">{</span>
-     <span class="n">com</span><span class="o">.</span><span class="na">tns</span><span class="o">.</span><span class="na">Runtime</span><span class="o">.</span><span class="na">initInstance</span><span class="o">(</span><span class="k">this</span><span class="o">);</span>
- <span class="o">}</span>
+	<span class="kd">public</span> <span class="nf">NativeScriptActivity</span><span class="o">()</span>
+	<span class="o">{</span>
+		<span class="n">com</span><span class="o">.</span><span class="na">tns</span><span class="o">.</span><span class="na">Runtime</span><span class="o">.</span><span class="na">initInstance</span><span class="o">(</span><span class="k">this</span><span class="o">);</span>
+	<span class="o">}</span>
 
- <span class="kd">protected</span> <span class="kt">void</span> <span class="nf">onCreate</span><span class="o">(</span><span class="n">android</span><span class="o">.</span><span class="na">os</span><span class="o">.</span><span class="na">Bundle</span> <span class="n">param_0</span><span class="o">)</span>
- <span class="o">{</span>
-     <span class="n">Object</span><span class="o">[]</span> <span class="n">args</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Object</span><span class="o">[</span><span class="mi">1</span><span class="o">];</span>
-     <span class="n">args</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span> <span class="o">=</span> <span class="n">param_0</span><span class="o">;</span>
-     <span class="n">com</span><span class="o">.</span><span class="na">tns</span><span class="o">.</span><span class="na">Runtime</span><span class="o">.</span><span class="na">callJSMethod</span><span class="o">(</span><span class="k">this</span><span class="o">,</span> <span class="s">"onCreate"</span><span class="o">,</span> <span class="kt">void</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> <span class="n">args</span><span class="o">);</span>
- <span class="o">}</span>
+	<span class="kd">protected</span> <span class="kt">void</span> <span class="nf">onCreate</span><span class="o">(</span><span class="n">android</span><span class="o">.</span><span class="na">os</span><span class="o">.</span><span class="na">Bundle</span> <span class="n">param_0</span><span class="o">)</span>
+	<span class="o">{</span>
+		<span class="n">Object</span><span class="o">[]</span> <span class="n">args</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Object</span><span class="o">[</span><span class="mi">1</span><span class="o">];</span>
+		<span class="n">args</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span> <span class="o">=</span> <span class="n">param_0</span><span class="o">;</span>
+		<span class="n">com</span><span class="o">.</span><span class="na">tns</span><span class="o">.</span><span class="na">Runtime</span><span class="o">.</span><span class="na">callJSMethod</span><span class="o">(</span><span class="k">this</span><span class="o">,</span> <span class="s">"onCreate"</span><span class="o">,</span> <span class="kt">void</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> <span class="n">args</span><span class="o">);</span>
+	<span class="o">}</span>
 <span class="o">}</span>
 </code></pre>
-    </div>
-  </li>
-</ol>
+</div>
 
 <p>小结：
 java层的代码包括了test-app项目和runtime核心项目的部分大体已经分析的差不多了。其他都是一些辅助的类，当大体流程了解了，这些辅助类也就能触类旁通了。这里总结遇到的几点方法：</p>
@@ -294,6 +302,7 @@ java层的代码包括了test-app项目和runtime核心项目的部分大体已�
 <p>(1)从JS端创建一个Android端的MyActivity对应的NativeScriptActivity：
 创建js的对象不是很简单吗？通过runscript去执行一个var a = {}，这个就是一个对象啦，但是这并不能和android的对象一一对应，下面来看下NativeScript是怎么做的。
 在上面java层的第3点中讲到了通过注解注入绑定的js文件，在此之后进行了初始化创建。</p>
+
 <div class="language-java highlighter-rouge"><pre class="highlight"><code><span class="k">if</span> <span class="o">(!</span><span class="n">loadedJavaScriptExtends</span><span class="o">.</span><span class="na">containsKey</span><span class="o">(</span><span class="n">clazz</span><span class="o">))</span>
 <span class="o">{</span>
 	<span class="n">JavaScriptImplementation</span> <span class="n">jsImpl</span> <span class="o">=</span> <span class="n">clazz</span><span class="o">.</span><span class="na">getAnnotation</span><span class="o">(</span><span class="n">JavaScriptImplementation</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
@@ -310,7 +319,9 @@ java层的代码包括了test-app项目和runtime核心项目的部分大体已�
 <span class="n">createJSInstanceNative</span><span class="o">(</span><span class="n">getRuntimeId</span><span class="o">(),</span> <span class="n">instance</span><span class="o">,</span> <span class="n">javaObjectID</span><span class="o">,</span> <span class="n">className</span><span class="o">);</span>
 </code></pre>
 </div>
+
 <p>在runModule时候会对应的创建了一个extend扩展了android.app.Activity的MyActivity，从而在初始化对应的android.app.Activity的时候会创建出对应的拓展MyActivity对象。</p>
+
 <div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="kd">var</span> <span class="nx">MyActivity</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">_super</span><span class="p">)</span> <span class="p">{</span>
     <span class="nx">__extends</span><span class="p">(</span><span class="nx">MyActivity</span><span class="p">,</span> <span class="nx">_super</span><span class="p">);</span>
     <span class="kd">function</span> <span class="nx">MyActivity</span><span class="p">()</span> <span class="p">{</span>
@@ -328,6 +339,7 @@ java层的代码包括了test-app项目和runtime核心项目的部分大体已�
 
 <p>现在第一步了解了MetaData后可以来看一下加载MetadataNode的主要过程和上面提到的问题。
 在Runtime.cpp中的PrepareV8Runtime方法中有MetadataNode::BuildMetadata的方法，这就是进行Metadata初始化的起点:</p>
+
 <div class="language-c++ highlighter-rouge"><pre class="highlight"><code><span class="kt">void</span> <span class="n">MetadataNode</span><span class="o">::</span><span class="n">BuildMetadata</span><span class="p">(</span><span class="k">const</span> <span class="n">string</span><span class="o">&amp;</span> <span class="n">filesPath</span><span class="p">)</span>
 <span class="p">{</span>
 	<span class="p">...</span>
@@ -342,6 +354,7 @@ java层的代码包括了test-app项目和runtime核心项目的部分大体已�
 </code></pre>
 </div>
 <p>可以看出，在BuildMetadata中就是做了加载三个dat二进制文件，接着，通过MetadataReader的BuildTree方法开始从二进制文件中读取node的基本信息，为后面加载类信息做基本准备。接着回到Runtime.cpp中，可以看到CreateTopLevelNamespaces方法，这个方法进行MetadataNode的初始化，从最顶层类开始往下。</p>
+
 <div class="language-c++ highlighter-rouge"><pre class="highlight"><code><span class="kt">void</span> <span class="n">MetadataNode</span><span class="o">::</span><span class="n">CreateTopLevelNamespaces</span><span class="p">(</span><span class="n">Isolate</span> <span class="o">*</span><span class="n">isolate</span><span class="p">,</span> <span class="k">const</span> <span class="n">Local</span><span class="o">&lt;</span><span class="n">Object</span><span class="o">&gt;&amp;</span> <span class="n">global</span><span class="p">)</span>
 <span class="p">{</span>
 	<span class="k">auto</span> <span class="n">root</span> <span class="o">=</span> <span class="n">s_metadataReader</span><span class="p">.</span><span class="n">GetRoot</span><span class="p">();</span>
@@ -354,9 +367,9 @@ java层的代码包括了test-app项目和runtime核心项目的部分大体已�
 
 		<span class="k">if</span> <span class="p">(</span><span class="n">nodeType</span> <span class="o">==</span> <span class="n">MetadataTreeNode</span><span class="o">::</span><span class="n">PACKAGE</span><span class="p">)</span>
 		<span class="p">{</span>
-		    <span class="c1">// 从treeNode上获取下一个node的信息
+		   <span class="c1">// 从treeNode上获取下一个node的信息
 </span>			<span class="k">auto</span> <span class="n">node</span> <span class="o">=</span> <span class="n">GetOrCreateInternal</span><span class="p">(</span><span class="n">treeNode</span><span class="p">);</span>
-            <span class="c1">// 为node信息创建对应的js的obj 的创建模板FunctionTemplate
+      <span class="c1">// 为node信息创建对应的js的obj 的创建模板FunctionTemplate
 </span>			<span class="k">auto</span> <span class="n">packageObj</span> <span class="o">=</span> <span class="n">node</span><span class="o">-&gt;</span><span class="n">CreateWrapper</span><span class="p">(</span><span class="n">isolate</span><span class="p">);</span>
 			<span class="c1">// 将js
 </span>			<span class="n">global</span><span class="o">-&gt;</span><span class="n">Set</span><span class="p">(</span><span class="n">ArgConverter</span><span class="o">::</span><span class="n">ConvertToV8String</span><span class="p">(</span><span class="n">isolate</span><span class="p">,</span> <span class="n">node</span><span class="o">-&gt;</span><span class="n">m_treeNode</span><span class="o">-&gt;</span><span class="n">name</span><span class="p">),</span> <span class="n">packageObj</span><span class="p">);</span>
@@ -365,7 +378,9 @@ java层的代码包括了test-app项目和runtime核心项目的部分大体已�
 <span class="p">}</span>
 </code></pre>
 </div>
+
 <p>在CreateWrapper方法中，将会为每一个对应的类创建一个对应的模板FunctionTemplate，这个一个模板是能够向v8中注入相应的字段，通过字段作为js的一个新的类型，并通过此FunctionTemplate回调到jni方法，去进行相应的java obj和jni obj的初始化，并进行绑定。获得这个FunctionTemplate的方法是：</p>
+
 <div class="language-c++ highlighter-rouge"><pre class="highlight"><code>
 </code></pre>
 </div>
@@ -422,13 +437,26 @@ java层的代码包括了test-app项目和runtime核心项目的部分大体已�
   // 生成目录toc
   $(document).ready(()=> {
       $('#toc').toc({ classes: { list: '',
-                           item: 'toc-item'
+                           item: 'toc-item',
+                           itemSelected: 'toc-item-arrived'
                          }
               });
   });
+  // toc目录悬浮效果
+  var tocFixedOnScroll = function() {
+    var contentLayout = document.getElementsByClassName('content-container-layout')[0];
+    var tocLayout = document.getElementById('toc');
+    if (document.body.scrollTop + 40 >= contentLayout.offsetTop) {
+      tocLayout.className = ' toc-layout-fixed';
+    } else {
+      tocLayout.className = ' toc-layout';
+    }
+  };
+  window.addEventListener("scroll", tocFixedOnScroll);
+
   // 多说公共JS代码 start (一个网页只需插入一次)
-  var $navigator = document.querySelector(".navigator-wrap");
-  $navigator.style.backgroundColor = "darkgray";
+  // var $navigator = document.querySelector(".navigator-wrap");
+  // $navigator.style.backgroundColor = "darkgray";
 </script>
 
 	<footer>

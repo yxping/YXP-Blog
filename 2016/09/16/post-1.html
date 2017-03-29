@@ -87,7 +87,8 @@
 <p>XCore是给予前端展示界面Native化能力的框架，前端与Native的交互是XCore与生俱来的能力。对于创建新组件，我们强烈推荐使用现有的XCore API进行前端组件的拓展和封装。但是由于框架中现有的局限影响了你的开发，当框架中的拓展涉及了或者是不能满足，可以进行组件的Native拓展。
 组件Native拓展指的是在xcore-vue中定义组件标签component，该component组件在Native端中对应一个View组件，改component的展示逻辑都有Native端的决定，</p>
 
-<div class="language-java highlighter-rouge"><pre class="highlight"><code><span class="kd">public</span> <span class="kt">void</span> <span class="nf">func</span><span class="o">()</span> <span class="o">{</span>
+<div class="language-java highlighter-rouge"><pre class="highlight"><code><span class="c1">// 你好</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">func</span><span class="o">()</span> <span class="o">{</span>
 
 <span class="o">}</span>
 </code></pre>
@@ -106,13 +107,26 @@
   // 生成目录toc
   $(document).ready(()=> {
       $('#toc').toc({ classes: { list: '',
-                           item: 'toc-item'
+                           item: 'toc-item',
+                           itemSelected: 'toc-item-arrived'
                          }
               });
   });
+  // toc目录悬浮效果
+  var tocFixedOnScroll = function() {
+    var contentLayout = document.getElementsByClassName('content-container-layout')[0];
+    var tocLayout = document.getElementById('toc');
+    if (document.body.scrollTop + 40 >= contentLayout.offsetTop) {
+      tocLayout.className = ' toc-layout-fixed';
+    } else {
+      tocLayout.className = ' toc-layout';
+    }
+  };
+  window.addEventListener("scroll", tocFixedOnScroll);
+
   // 多说公共JS代码 start (一个网页只需插入一次)
-  var $navigator = document.querySelector(".navigator-wrap");
-  $navigator.style.backgroundColor = "darkgray";
+  // var $navigator = document.querySelector(".navigator-wrap");
+  // $navigator.style.backgroundColor = "darkgray";
 </script>
 
 	<footer>

@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="content-type" content="text/html" />
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Android富文本测量绘制实践优化</title>
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/css/blog.css">
+  <!-- Custom Fonts -->
+  <script src="https://use.fontawesome.com/e6b9c39ee7.js"></script>
+  <!-- code-prettify from Google -->
+  <script src="https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js"></script>
+  <link href="/css/atelier-forest-light.min.css" rel="stylesheet">
+  <!-- <link href="/css/pretty.css" rel="stylesheet"> -->
+  <!-- jQuery -->
+  <script src="/js/jquery.min.js "></script>
+  <!-- UY 友言评论 -->
+  <script type="text/javascript" src="http://v2.uyan.cc/code/uyan.js?uid=2129743"></script>
+</head>
+
+
+<body>
+	
+<div class="__vue-root" id="Navigator" baseUrl=""
+      githubSite="https://github.com/yxping" weiboSite="https://weibo.com/yaoxiaopengweibo"> </div>
+<!-- <navigator class="navigator-wrap">
+  <div class="navigator-wrap">
+    <a class="navigator-blog-name" href="/">YXP Blog</a>
+    <button type="button" class="float-icon">
+      <span style="width: 0px; height: 0px; margin-bottom: -2px"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </button>
+  </div>
+  <div id="navigator-menu">
+    <div class="navigator-menu-toggle">
+        <ul class="menu-ul">
+          <li>
+            <a href="/">HOME</a>
+          </li>
+          <li>
+            <a href="/">ABOUT</a>
+          </li>
+          <li>
+            <a href="/">GUITAR</a>
+          </li>
+        </ul>
+    </div>
+  </div>
+</navigator> -->
+
+
+<script>
+  // var $body = document.body;
+  // var $navMenu = document.querySelector('#navigator-menu');
+  // var $menuBtn = document.querySelector('.float-icon');
+  // var $menuToggle = document.querySelector('.navigator-menu-toggle');
+  // var _menu_operator = {
+  //   open: function() {
+  //     $navMenu.className = " in";
+  //   },
+  //
+  //   close: function() {
+  //     $navMenu.className = " out";
+  //   }
+  // };
+  // $menuBtn.addEventListener('click', function(e) {
+  //   if ($navMenu.className.indexOf('in') > 0) {
+  //     _menu_operator.close();
+  //   } else {
+  //     _menu_operator.open();
+  //   }
+  // });
+  //
+  // document.addEventListener('click', function(e){
+  //   if ($navMenu.className.indexOf('in') > 0) {
+  //     if((e.target == $menuBtn) || (e.target.className == 'icon-bar')) return;
+  //     _menu_operator.close();
+  //   }
+  // })
+</script>
+
+	<div class="detail-container-layout">
+  <h2 > Android富文本测量绘制实践优化</h2>
+  <div class="content-container-layout">
+    <div class="content-container">
+      <p>文字的排版和绘制是一件极其复杂的工序，尤其是面对富文本的操作。Android 系统提供了 SpannableString 和 andoird.text.Layout 可以简化对于富文本操作的难度，下面的内容就是围绕这两个类进行相关的描述，<strong>针对如何进行文字的正确测量和优化绘制展开。</strong></p>
+<h3 id="文本测量--绘制">文本测量 &amp; 绘制</h3>
+<p>了解文本测量的方式，最直接的就是看 TextView 的源码。我是通过结合了 TextView 源码、ReactNative 的 ReactTextShadowNode 和 Weex 的 WXTextDomObject 进行这一次的文本优化策略的实践。</p>
+
+<p><em>当然对于纯文本的测量可以通过 Paint.getTextBounds 和 Paint.measureText 方法，两者底层调用的skia方法是相同的，只是返回的精度不同，具体用法和区别可以参考 <a href="http://stackoverflow.com/questions/7549182/android-paint-measuretext-vs-gettextbounds">stackoverflow</a></em></p>
+
+<blockquote>
+  <h4 id="1-layout认识">1. Layout认识</h4>
+  <p>Android 提供了三种对于文字的布局测量类，分别是 BoringLayout , StaticLayout , DynamicLayout 。</p>
+  <ul>
+    <li><strong>BoringLayout</strong> : 对于没有任何的 ParagraphStyle 修饰的单行文本（ text 或者 span）的测量工具。</li>
+    <li><strong>StaticLayout</strong> : 对于静态不变文本的测量工具。可以处理多种 span 效果，是最主要的测量文本布局工具。</li>
+    <li><strong>DynamicLayout</strong> : 对于动态可变文本的测量工具。配合 SpannableStringBuilder 使用，内部使用 ChangeWatcher 监听 SpannableStringBuilder 文本的变化，动态更新 Layout。 DynamicLayout 内部实现仍然使用的是 StaticLayout 。</li>
+  </ul>
+</blockquote>
+
+<blockquote>
+  <p><em>ParagraphStyle 是众多 span 的其中一个文本格式，span 的基本文本格式和作用如下</em></p>
+  <ul>
+    <li><em>CharacterStyle</em> : 指定文本中每一个字符的格式。</li>
+    <li><em>ParagraphStyle</em> : 指定一段/行文本的文字格式</li>
+    <li><em>UpdateApperarance</em> : 动态指定一个字符的格式</li>
+  </ul>
+</blockquote>
+
+<blockquote>
+  <h4 id="2-文本高度认识">2. 文本高度认识</h4>
+  <p>Layout 的测量需要依赖于 TextPaint, 通过 StaticLayout 源码可以明白，在使用 MeasuredText 获取每段文本高度的时候，使用 TextPaint 。利用在 Paint.FontMetrics 类中定义的 top, ascent, descent, bottom, leading 五个变量对文本的高度进行描述。
+<img src="/images/staticlayout1.png" alt="Drawing" style="width: 400px;" />
+上面这个图就是五个变量所描述的位置，在进行行高设置的时候可以通过 LineHeightSpan 对这些参数进行修改达到效果。这个的实现方式和源码在下一个小点上展开。</p>
+  <ul>
+    <li>Baseline: 指的位置是 paint 绘制text的基准线</li>
+    <li>Top: 在给定大小的最高字体的基线以上的最大距离，为负数（在 vivo 上的表现是 top 小于 ascent，坑爹，不过不影响计算）</li>
+    <li>Ascent: 在单行文本的基线以上的推荐距离，为负数，只作用于首行</li>
+    <li>Descent: 在单行文本基线以下的推荐距离，为正数，只作用与末行</li>
+    <li>Bottom: 在给定大小的最低字体的基线以下的最大距离，为正数</li>
+    <li>Leading(没有展示): 推荐的行间距
+在 StaticLayout 中可以通过 includepad 变量指定文字高度是以最大距离展示还是以推荐距离展示。展示的效果如上图，第一行是当 includepad = false 的时候，以 ascent 和 descent 为行高，当 includepad = true 的时候，以 top 和 bottom 为行高。具体源码如下：</li>
+  </ul>
+  <pre class="prettyprint lang-java linenums ">public void out() {
+    ...
+    if (chooseHt != null) {
+        ...
+        // above 是 paint 进行绘制的距离 baseline 以上的指定距离
+        above = fm.ascent;
+        // below 是 paint 进行绘制的距离 baseline 以下的指定距离
+        below = fm.descent;
+        top = fm.top;
+        bottom = fm.bottom;
+    }
+    ...
+    if (firstLine) {
+        if (trackPad) {
+            mTopPadding = top - above;
+        }
+        if (includePad) {
+            above = top;
+        }
+    }
+    int extra;
+    if (lastLine) {
+        if (trackPad) {
+            mBottomPadding = bottom - below;
+        }
+        if (includePad) {
+            below = bottom;
+        }
+    }
+    ...
+}</pre>
+</blockquote>
+
+<blockquote>
+  <h4 id="3-富文本测量--绘制">3. 富文本测量 &amp; 绘制</h4>
+  <p>对 Layout 和文本高度有所了解之后，就可以来用代码实践一下了，就按照上面图片的案例 demo 分析一下富文本测量和绘制的具体方法。</p>
+</blockquote>
+
+<blockquote>
+  <p><strong>首先：</strong> 构造一个富文本 SpannableStringBuilder (这里也可以用 SpannableString ) ，预先向 SpannableString 设置文本中每一段文字的样式，这样就完成了一个富文本的构造。其中使用了 MyLineHeightSpan 进行 FontMetrics 的五个变量的记录，方便在之后的 onDraw 的时候使用，它调用的时机是在进行 StaticLayout 对于文本进行测量。</p>
+  <pre class="prettyprint lang-java linenums ">private SpannableStringBuilder createSpannableString(String text) {
+    SpannableStringBuilder sb = new SpannableStringBuilder(text);
+    // TODO(5837930): Investigate whether it's worth optimizing this part and do it if so
+    // The {@link SpannableStringBuilder} implementation require setSpan operation to be called
+    // up-to-bottom, otherwise all the spannables that are withing the region for which one may set
+    // a new spannable will be wiped out
+    List<SetSpanOperation> ops = new ArrayList&lt;&gt;();
+    int start = 0;
+    int end = sb.length();
+    if (end &gt;= start) {
+        // 设置文字大小
+        ops.add(new SetSpanOperation(start, end, new AbsoluteSizeSpan((int) TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_SP, 56, getContext().getResources().getDisplayMetrics()))));
+        // 设置文字颜色
+        ops.add(new SetSpanOperation(start, end, new ForegroundColorSpan(Color.WHITE)));
+        // 设置背景颜色
+        ops.add(new SetSpanOperation(start, end, new BackgroundColorSpan(Color.parseColor("#55AA88"))));
+        // 设置排版方向
+        ops.add(new SetSpanOperation(start, end, new AlignmentSpan.Standard(Layout.Alignment.ALIGN_NORMAL)));
+        // 设置行高
+        ops.add(new SetSpanOperation(start, end, new MyLineHeightSpan(this)));
+        // 设置文字样式分别有 UnderlineSpan (下划线)和 StrikethroughSpan (删除线)
+//            ops.add(new SetSpanOperation(start, end, new UnderlineSpan()));
+    }
+    for (int i = ops.size() - 1; i &gt;= 0; i--) {
+        SetSpanOperation op = ops.get(i);
+        op.execute(sb);
+    }
+    return sb;
+}
+// 记录 FontMetrics ，和上述源码中的 includepad 参数对于文本绘制的影响逻辑一直
+void setFontMetrics(int start, int end, Paint.FontMetricsInt fm) {
+    mTop = fm.top;
+    mBottom = fm.bottom;
+    mAscent = fm.ascent;
+    mDescent = fm.descent;
+    // Is first line
+    if (mIncludePad &amp;&amp; start == 0) {
+        mAbove = mTop;
+    } else {
+        mAbove = mAscent;
+    }
+    // Is last line
+    if (mIncludePad &amp;&amp; end == mText.length()) {
+        mBelow = mBottom;
+    } else {
+        mBelow = mDescent;
+    }
+    mBaseline = 0;
+    transform();
+}
+// 转化成 onDraw 可以进行正确绘制的位置
+private void transform() {
+    mBaseline = -mAbove;
+    mBelow += mBaseline;
+    mAbove = 0;
+    mTop += mBaseline;
+    mAscent += mBaseline;
+    mBottom += mBaseline;
+    mDescent += mBaseline;
+}
+static class SetSpanOperation {
+    protected int start, end;
+    protected Object what;
+    // 该 span 作用于从 start 到 end 的一段文本
+    SetSpanOperation(int start, int end, Object what) {
+        this.start = start;
+        this.end = end;
+        this.what = what;
+    }
+    public void execute(SpannableStringBuilder sb) {
+        // All spans will automatically extend to the right of the text, but not the left - except
+        // for spans that start at the beginning of the text.
+        int spanFlags = Spannable.SPAN_EXCLUSIVE_INCLUSIVE;
+        if (start == 0) {
+            spanFlags = Spannable.SPAN_INCLUSIVE_INCLUSIVE;
+        }
+        sb.setSpan(what, start, end, spanFlags);
+    }
+}
+// 设置每一行的行高
+static class MyLineHeightSpan implements LineHeightSpan {
+    private WeakReference<MyTextView> mView;
+    public MyLineHeightSpan(MyTextView view) {
+        mView = new WeakReference<MyTextView>(view);
+    }
+    @Override
+    public void chooseHeight(CharSequence text, int start, int end, int spanstartv, int v, Paint.FontMetricsInt fm) {
+        Log.e("yxp", fm.toString());
+        mView.get().setFontMetrics(start, end, fm);
+    }
+}
+</MyTextView></MyTextView></SetSpanOperation></pre>
+</blockquote>
+
+<blockquote>
+  <p><strong>接着：</strong> 在完成富文本构建后，就可以进行文本的测量，这里分成两大步，一是获取宽度，二是获取高度</p>
+  <ul>
+    <li>如果文本宽度指定了，则使用指定文本宽度</li>
+    <li>如果文本是符合一个 Boring 文本，则使用 BoringLayout.Metrics 提供的 width</li>
+    <li>否则使用 Layout.getDesireWidth 进行宽度测量</li>
+    <li>构建 StaticLayout 获取文本高度相关变量, includepad 问题可以见上述 <a href="#2-文本高度认识">文本高度认识</a></li>
+  </ul>
+</blockquote>
+
+<blockquote>
+  <p>StaticLayout 是更常使用的测量工具，相对于 BoringLayout 和 DynamicLayout，掌握了 StaticLayout 对于其他两个的使用也是易如反掌，所以这里只展示 StaticLayout 的具体使用方式。</p>
+  <pre class="prettyprint lang-java linenums ">protected void initLayout(boolean includepad) {
+    mIncludePad = includepad;
+    TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+    // 构建富文本
+    SpannableStringBuilder span = createSpannableString(mText);
+    int desiredWidth;
+    if (mGivenWidth != UNSET) {
+        desiredWidth = mGivenWidth;
+    } else {
+        BoringLayout.Metrics isBoring = BoringLayout.isBoring(span, textPaint);
+        if (isBoring != null) {
+            desiredWidth = isBoring.width;
+        } else {
+            desiredWidth = (int) Math.ceil(Layout.getDesiredWidth(span, textPaint));
+        }
+    }
+    // 构建 StaticLayout
+    mLayout = new StaticLayout(
+            // 指定文本，可以是 String 或者 SpannableString
+            span,
+            // 文本起始位置
+            0,
+            // 文本终止位置
+            span.length(),
+            textPaint,
+            desiredWidth,
+            Layout.Alignment.ALIGN_NORMAL,
+            // 字体大小的缩放因子，影响行高
+            1,
+            // 默认行间距
+            0,
+            // 影响行高，如上述“文本高度认识”所述
+            includepad
+    );
+}
+// onMeasure 时候设置 view 的宽度和高度
+@Override
+protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+    int width = MeasureSpec.makeMeasureSpec(mLayout.getWidth() + 2 * mReservedSpace, MeasureSpec.EXACTLY);
+    int height = MeasureSpec.makeMeasureSpec(mLayout.getHeight() + 2 * mReservedSpace, MeasureSpec.EXACTLY);
+    super.onMeasure(width, height);
+}
+</pre>
+</blockquote>
+
+<blockquote>
+  <p><strong>最后：</strong> 绘制是一个最简单的步骤了，一个 api 调用一下即可绘制。demo 里把五个标准线绘制了出来。代码如下：</p>
+  <pre class="prettyprint lang-java linenums ">@Override
+protected void onDraw(Canvas canvas) {
+    canvas.save();
+    canvas.translate(mReservedSpace, mReservedSpace);
+    // 文本绘制
+    mLayout.draw(canvas);
+    // 绘制基线
+    Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    paint.setStrokeWidth(3);
+    paint.setColor(Color.MAGENTA);
+    canvas.drawLine(0, mTop, mLayout.getWidth(), mTop, paint);
+    paint.setColor(Color.GREEN);
+    canvas.drawLine(0, mAscent, mLayout.getWidth(), mAscent, paint);
+    paint.setColor(Color.RED);
+    canvas.drawLine(0, mBaseline, mLayout.getWidth(), mBaseline, paint);
+    paint.setColor(Color.BLUE);
+    canvas.drawLine(0, mDescent, mLayout.getWidth(), mDescent, paint);
+    paint.setColor(Color.YELLOW);
+    canvas.drawLine(0, mBelow, mLayout.getWidth(), mBelow, paint);
+    //
+    canvas.restore();
+}
+</pre>
+</blockquote>
+
+<blockquote>
+  <p>效果图 <img src="/images/staticlayout1.png" alt="Drawing" style="width: 400px;" /></p>
+</blockquote>
+
+<h3 id="问题解决方法">问题&amp;解决方法</h3>
+<blockquote>
+  <p>1.<strong>文本测量和 TextView 测量结果不一致</strong></p>
+</blockquote>
+
+<p>  避免使用 TextView，既然自己测量的，就自己绘制，没必要测量完了之后，再通过 TextView 进行设置属性，重复测量，再进行绘制。同时测量自己可以把控，结果当然也是自己把控。demo 的实例的 MyTextView 就是直接继承 View，相关的设置都通过 Span 进行富文本构建。</p>
+
+<blockquote>
+  <p>2.<strong>在长文本情况下，onDraw 方法绘制速度比 TextView 慢</strong></p>
+</blockquote>
+
+<p>  可以看到在 demo 中对于文字大小和颜色都是通过 Span 进行设置的，然而在 TextView 源码中，对于文字颜色和大小的设置是通过 TextPaint 设置的，应用 TextView 的方法，速度果然提升了，比 TextView onDraw时间快了40%。<em>但是这个当然是有局限的，只能对整一段文字进行使用，如果需要对某一段文字设置的话，还是通过 Span 进行设置会更方便。</em>
+  另外，在 <a href="http://www.qingpingshan.com/rjbc/az/119668.html">Weex 的文章</a>中看到了 TextLayoutCache 的缓存问题，在 <a href="http://stackoverflow.com/questions/17449835/tag-textlayoutcache-text-cache-value-deleted">statckoverflow</a> 中对于这个有更详细的描述，大意思可以先通过一个 canvas 进行预先绘制，在底层会通过 LRUCache 进行文本渲染结果缓存，降低下一次绘制的时间。<em>如果排版测量是在另外一条线程，且对于时间没有要求，可以通过这个方式进行预加载，减少 ui 线程的 onDraw 时间，在我的实践中没有使用主要是因为 js 线程和 ui 线程都影响首屏加载，所以无论放在哪里，耗时都是差不多。</em></p>
+
+<blockquote>
+  <p>3.<strong>ellipsis问题</strong></p>
+</blockquote>
+
+<p>  在 Android api 23之后，StaticLayout 使用了 builder 模式进行构建，可以设置 ellipsis 模式和行数。在23之前的版本，行数的设置是对外隐藏的，也就没办法进行 ellipsis 的操作。所以这个需要自己进行处理。这个的处理方式就是在末尾添加省略号，重新排版问题。分为以下几个步骤：</p>
+<ul>
+  <li>删除从指定行数到最后的文字，插入省略号</li>
+  <li>删除当前行末尾与省略号大小相同或大于的文字</li>
+  <li>重新排版测量</li>
+</ul>
+
+<p>这里考虑一个性能问题，主要是在 Layout.getDesiredWidth 中是一个 O(N) 时间复杂度，所以使用它的时候不要用遍历的方式，否则会变成 O(N2)，这里通过从最接近的行数往回测量出省略号的距离，只进行单个文字测量，使得时间在 O(1)复杂度。</p>
+<pre class="prettyprint lang-java linenums ">protected void initLayout(boolean includepad) {
+    ...
+    // Determine if need ellipsis
+    if (mLineNum != UNSET &amp;&amp; mLayout.getLineCount() &gt; mLineNum) {
+        mLayout = ellipsis(span, mLayout, textPaint);
+    }
+}
+public Layout ellipsis(SpannableStringBuilder span, Layout originLayout, TextPaint textPaint) {
+    // 删除从指定行数到最后的文字，插入省略号
+    span.delete(originLayout.getLineEnd(mLineNum - 1), span.length())
+            .insert(span.length(), ELLIPSIS);
+    int ellipsisIndex = span.length() - 1;
+    // 获取省略号大小
+    float ellipsisSize = Layout.getDesiredWidth(span, ellipsisIndex,
+            ellipsisIndex + 1, textPaint);
+    if (ellipsisSize &gt; originLayout.getWidth()) {
+        span.clear();
+    } else {
+        // 删除当前行末尾与省略号大小相同或大于的文字
+        int to = ellipsisIndex - 1;
+        int from = to;
+        float targetSize = 0;
+        while (from &gt; 0) {
+            targetSize += Layout.getDesiredWidth(span, from,
+                    from + 1, textPaint);
+            if (targetSize &gt;= ellipsisSize) {
+                break;
+            }
+            from--;
+        }
+        if (from == 0) {
+            span.clear();
+        } else {
+            span.delete(from, to + 1);
+        }
+    }
+    // 重新排版
+    return new StaticLayout(
+            span,
+            0,
+            span.length(),
+            textPaint,
+            originLayout.getWidth(),
+            Layout.Alignment.ALIGN_NORMAL,
+            1,
+            0,
+            false);
+}</pre>
+
+<p>效果图：<img src="/images/staticlayout2.png" alt="Drawing" style="width: 200px;" /></p>
+
+    </div>
+    <div id="toc" class="toc-layout"></div>
+  </div>
+
+  <!-- UY BEGIN -->
+  <div id="uyan_frame" class="youyan-fame-layout"></div>
+  <!-- UY END -->
+</div>
+
+<script src="/js/toc.js"></script>
+
+<script type="text/javascript">
+  // 生成目录toc
+  $(document).ready(()=> {
+      $('#toc').toc({ classes: { list: '',
+                           item: 'toc-item',
+                           itemSelected: 'toc-item-arrived'
+                         }
+              });
+  });
+  // toc目录悬浮效果
+  var tocFixedOnScroll = function() {
+    var contentLayout = document.getElementsByClassName('content-container-layout')[0];
+    var tocLayout = document.getElementById('toc');
+    if (document.body.scrollTop + 40 >= contentLayout.offsetTop) {
+      tocLayout.className = ' toc-layout-fixed';
+    } else {
+      tocLayout.className = ' toc-layout';
+    }
+  };
+  window.addEventListener("scroll", tocFixedOnScroll);
+
+  // 多说公共JS代码 start (一个网页只需插入一次)
+  // var $navigator = document.querySelector(".navigator-wrap");
+  // $navigator.style.backgroundColor = "darkgray";
+</script>
+
+	<footer>
+  <div class="footer-container">
+    <div class="theme-layout">
+      <div>
+        Theme by <a href="http://yxping.github.io/">yxp</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+      </div>
+      <iframe src="https://ghbtns.com/github-btn.html?user=yxping&repo=yxping.github.io&type=star&count=true"
+      frameborder="0" scrolling="0" width="80px" height="20px">
+      </iframe>
+    </div>
+  </div>
+</footer>
+
+<!-- Vue Component -->
+<script src="/assets/bundle.js"></script>
+
+<script type="text/javascript">
+  var duoshuoQuery = {short_name:"yxpeng"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0]
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+  <!-- 多说公共JS代码 end -->
+</script>
+
+</body>
+</html>

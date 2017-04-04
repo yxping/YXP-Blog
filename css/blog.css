@@ -472,6 +472,10 @@ body {
   color: #777;
 }
 
+.toc-item ul {
+  -webkit-padding-start: 10px;
+}
+
 .toc-item:hover > a{
   text-decoration: underline;
   color: black;
@@ -482,6 +486,10 @@ body {
   color: white;
   background: #55AA88;
   padding: 2px 4px;
+}
+
+.toc-item-arrived > ul{
+  -webkit-padding-start: 10px;
 }
 
 .toc-item-arrived:hover > a {
@@ -500,6 +508,8 @@ body {
   border-width: 1px;
 }
 
+
+
 .toc-layout-fixed {
   position: fixed;
   top: 40px;
@@ -510,7 +520,23 @@ body {
   border-width: 1px;
 }
 
-.duoshuo {
+.youyan-fame-layout {
   width: 750px;
+  margin-top: 20px;
   padding: 15px 30px;
+}
+
+/* about */
+.about-me-layout {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+}
+
+.about-me-layout > img {
+  width: 400px;
+  height: 300px;
+  object-fit: contain;
 }

@@ -101,10 +101,14 @@
       var target = undefined;
       var start = -1;
       var end = -1;
+      console.log(document.body.scrollTop)
       for (var i = 0; i < headers.length; ++i) {
         var header = headers[i];
         if (start > -1 && document.body.scrollTop < header.offsetTop) {
           end = start;
+        } else if (start != -1 && i == headers.length - 1 && end == -1) {
+          end = i;
+          target = document.getElementById(header.id + 'tocItem');
         } else if (document.body.scrollTop >= header.offsetTop) {
           start = i;
           target = document.getElementById(header.id + 'tocItem');
